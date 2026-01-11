@@ -10,6 +10,9 @@ import partytown from '@astrojs/partytown';
 import icon from 'astro-icon';
 import compress from 'astro-compress';
 import type { AstroIntegration } from 'astro';
+import react from '@astrojs/react';
+import keystatic from '@keystatic/astro';
+import vercel from '@astrojs/vercel';
 
 import astrowind from './vendor/integration';
 
@@ -22,9 +25,16 @@ const whenExternalScripts = (items: (() => AstroIntegration) | (() => AstroInteg
   hasExternalScripts ? (Array.isArray(items) ? items.map((item) => item()) : [items()]) : [];
 
 export default defineConfig({
-  output: 'static',
+  output: 'server',
+  adapter: vercel(),
+
+  devToolbar: {
+    enabled: false,
+  },
 
   integrations: [
+    react(),
+    keystatic(),
     tailwind({
       applyBaseStyles: false,
     }),
@@ -72,7 +82,7 @@ export default defineConfig({
   ],
 
   image: {
-    domains: ['cdn.pixabay.com'],
+    domains: ['cdn.pixabay.com', 'res.cloudinary.com'],
   },
 
   markdown: {

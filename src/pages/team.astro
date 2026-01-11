@@ -1,0 +1,150 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+import HeroText from '~/components/widgets/HeroText.astro';
+import Features3 from '~/components/widgets/Features3.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../keystatic.config';
+
+export const prerender = true;
+
+const reader = createReader(process.cwd(), keystaticConfig);
+
+// Fetch team members
+const teamEntries = await reader.collections.team.all();
+
+// Group by category
+const categories = {
+  faculty: 'Faculty Coordinators',
+  founding: 'Founding Members',
+  advisors: 'Advisors',
+  core: 'Core Team',
+  technical: 'Technical Team',
+  'event-management': 'Event Management',
+  'public-relations': 'Public Relations',
+  'social-media': 'Social Media & Photography',
+  content: 'Content',
+  'logistics': 'Logistics & Hospitality',
+};
+
+type TeamMember = {
+  title: string;
+  description: string;
+  image: { src: string; alt: string };
+  callToAction?: { text: string; href: string; target: string; icon: string };
+};
+
+const teamByCategory: Record<string, TeamMember[]> = {};
+for (const category in categories) {
+  teamByCategory[category] = teamEntries
+    .filter((member) => member.entry.category === category)
+    .sort((a, b) => (a.entry.displayOrder || 0) - (b.entry.displayOrder || 0))
+    .map((member) => {
+      const photo = member.entry.photo;
+      const photoSrc = (photo.discriminant === 'url' ? photo.value : photo.value) || '';
+      return {
+        title: member.entry.name,
+        description: member.entry.role,
+        image: {
+          src: photoSrc,
+          alt: member.entry.name,
+        },
+        callToAction: member.entry.linkedIn
+          ? {
+              text: 'LinkedIn',
+            href: member.entry.linkedIn,
+            target: '_blank',
+            icon: 'tabler:brand-linkedin',
+          }
+        : undefined,
+      };
+    })
+    .filter((member) => member.image.src); // Filter out members without photos
+}
+
+const metadata = {
+  title: 'Our Team',
+};
+---
+
+<Layout metadata={metadata}>
+  <HeroText
+    tagline="Meet the Team"
+    title="CSI - Innowave Team"
+    subtitle="The passionate individuals driving innovation and excellence at CSI - Innowave"
+  />
+
+  <!-- Faculty Coordinators -->
+  {
+    teamByCategory.faculty && teamByCategory.faculty.length > 0 && (
+      <Features3
+        title="Faculty Coordinators"
+        subtitle="Our esteemed faculty members guiding CSI - Innowave"
+        columns={4}
+        items={teamByCategory.faculty}
+        isBeforeContent={true}
+      />
+    )
+  }
+
+  <!-- Founding Members -->
+  {
+    teamByCategory.founding && teamByCategory.founding.length > 0 && (
+      <Features3
+        title="Founding Members"
+        subtitle="The visionaries who established CSI - Innowave"
+        columns={3}
+        items={teamByCategory.founding}
+      />
+    )
+  }
+
+  <!-- Advisors -->
+  {
+    teamByCategory.advisors && teamByCategory.advisors.length > 0 && (
+      <Features3
+        title="Advisors"
+        subtitle="Senior members providing guidance and mentorship"
+        columns={4}
+        items={teamByCategory.advisors}
+      />
+    )
+  }
+
+  <!-- Core Team -->
+  {
+    teamByCategory.core && teamByCategory.core.length > 0 && (
+      <Features3
+        title="Our Team"
+        subtitle="The core leadership driving CSI - Innowave"
+        columns={4}
+        items={teamByCategory.core}
+        isBeforeContent={true}
+      />
+    )
+  }
+
+  <!-- Executives Section -->
+  {
+    teamByCategory.technical && teamByCategory.technical.length > 0 && (
+      <Features3
+        title="Executives"
+        subtitle=""
+        columns={4}
+        items={[
+          ...teamByCategory.technical.map((member) => ({ ...member, category: 'Technical Team' })),
+          ...(teamByCategory['event-management'] || []).map((member) => ({ ...member, category: 'Event Management' })),
+          ...(teamByCategory['public-relations'] || []).map((member) => ({ ...member, category: 'Public Relations' })),
+          ...(teamByCategory['social-media'] || []).map((member) => ({
+            ...member,
+            category: 'Social Media and Photography',
+          })),
+          ...(teamByCategory.content || []).map((member) => ({ ...member, category: 'Content' })),
+          ...(teamByCategory.logistics || []).map((member) => ({
+            ...member,
+            category: 'Logistics and Hospitality',
+          })),
+        ]}
+      />
+    )
+  }
+</Layout>

@@ -1,0 +1,68 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+import HeroText from '~/components/widgets/HeroText.astro';
+import Grid from '~/components/blog/Grid.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../../keystatic.config';
+import type { Post } from '~/types';
+
+export const prerender = true;
+
+const reader = createReader(process.cwd(), keystaticConfig);
+
+// Fetch all events from Keystatic
+const eventsEntries = await reader.collections.events.all();
+
+// Transform Keystatic events to match Post interface
+const events: Post[] = await Promise.all(
+  eventsEntries.map(async (event) => {
+    const coverImage = event.entry.coverImage;
+    const imageSrc = (coverImage.discriminant === 'url' ? coverImage.value : coverImage.value) || '';
+
+    return {
+      id: event.slug,
+      slug: event.slug,
+      permalink: `/events/${event.slug}`,
+
+      publishDate: new Date(event.entry.eventDate),
+      updateDate: new Date(event.entry.eventDate),
+
+      title: event.entry.title,
+      excerpt: event.entry.excerpt || '',
+      image: imageSrc,
+
+      category: { slug: 'events', title: 'Events' },
+      tags: event.entry.galleryTag ? [{ slug: event.entry.galleryTag, title: event.entry.galleryTag }] : [],
+
+      metadata: {},
+    };
+  })
+);
+
+// Sort by event date (newest first)
+events.sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime());
+
+const metadata = {
+  title: 'Events',
+};
+---
+
+<Layout metadata={metadata}>
+  <HeroText
+    tagline="Events"
+    title="CSI - Innowave Events"
+    subtitle="Discover our workshops, seminars, hackathons, and technical events that drive innovation and learning"
+  />
+
+  <section class="px-4 py-16 mx-auto max-w-7xl sm:px-6 lg:px-8">
+    {
+      events.length === 0 ? (
+        <div class="text-center py-12">
+          <p class="text-xl text-gray-600 dark:text-gray-400">No events added yet.</p>
+        </div>
+      ) : (
+        <Grid posts={events} />
+      )
+    }
+  </section>
+</Layout>
